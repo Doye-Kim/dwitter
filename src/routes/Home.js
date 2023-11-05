@@ -1,54 +1,32 @@
-import React from "react";
-import { useState, useEffect } from "react";
-import { dbService } from "../fbase";
-const Home = () => {
-  const [dweet, setDweet] = useState("");
+import React, { useState, useEffect } from "react";
+import { dbService } from "fbase";
+import Dweet from "components/Dweet";
+import DweetFactory from "components/DweetFactory";
+
+const Home = ({ userObj }) => {
   const [dweets, setDweets] = useState([]);
-  const getDweets = async () => {
-    const dbDweets = await dbService.collection("dweets").get();
-    dbDweets.forEach((document) => {
-      const dweetObject = {
-        ...document.data(),
-        id: document.id,
-      };
-      setDweets((prev) => [dweetObject, ...prev]);
-    });
-    console.log(dweets);
-  };
   useEffect(() => {
-    getDweets();
+    dbService
+      .collection("dweets")
+      .orderBy("createdAt", "desc")
+      .onSnapshot((snapshot) => {
+        const dweetArray = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setDweets(dweetArray);
+      });
   }, []);
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    await dbService.collection("dweets").add({
-      dweet,
-      createdAt: Date.now(),
-    });
-    setDweet("");
-  };
-  const onChange = (e) => {
-    const {
-      target: { value },
-    } = e;
-    setDweet(value);
-  };
   return (
-    <div>
-      <form onSubmit={onSubmit}>
-        <input
-          type="text"
-          value={dweet}
-          onChange={onChange}
-          placeholder="what's on your mind?"
-          maxLength={120}
-        />
-        <input type="submit" value="Dweet" />
-      </form>
-      <div>
+    <div className="container">
+      <DweetFactory userObj={userObj} />
+      <div style={{ marginTop: 30 }}>
         {dweets.map((dweet) => (
-          <div key={dweet.id}>
-            <h4>{dweet.dweet}</h4>
-          </div>
+          <Dweet
+            key={dweet.id}
+            dweetObj={dweet}
+            isOwner={dweet.creatorId === userObj.uid}
+          />
         ))}
       </div>
     </div>
